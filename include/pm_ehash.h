@@ -42,13 +42,10 @@ typedef struct pm_bucket
     kv       slot[BUCKET_SLOT_NUM];                                // one slot for one kv-pair
 } pm_bucket;
 
-// in ehash_catalog, the virtual address of buckets_pm_address[n] is stored in buckets_virtual_address
-// buckets_pm_address: open catalog file and store the virtual address of file
-// buckets_virtual_address: store virtual address of bucket that each buckets_pm_address points to
 typedef struct ehash_catalog
 {
     pm_address* buckets_pm_address;         // pm address array of buckets
-    pm_bucket** buckets_virtual_address;    // virtual address of buckets that buckets_pm_address point to
+    pm_bucket*  buckets_virtual_address;    // virtual address array mapped by pmem_map
 } ehash_catalog;
 
 typedef struct ehash_metadata
@@ -85,6 +82,8 @@ private:
 
     void recover();
     void mapAllPage();
+
+	int getKeyIdx(const pm_bucket & bucket, uint64_t key);
 
 public:
     PmEHash();

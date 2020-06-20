@@ -94,7 +94,10 @@ libgtest_main.a : gtest-all.o gtest_main.o
 pm_ehash.o: $(USER_DIR)/pm_ehash.cpp ../include/pm_ehash.h ../include/data_page.h
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/pm_ehash.cpp -I $(USER_HEADER_DIR)
 
-$(EHASH_TEST) : pm_ehash.o ehash_test.o  $(GTEST_LIBS) | $(DATA) $(BIN) 
+data_page.o: $(USER_DIR)/data_page.cpp ../include/pm_ehash.h ../include/data_page.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(USER_DIR)/data_page.cpp -I $(USER_HEADER_DIR)
+
+$(EHASH_TEST) : pm_ehash.o data_page.o ehash_test.o  $(GTEST_LIBS) | $(DATA) $(BIN) 
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -L$(GTEST_LIB_DIR) -lgtest_main -lpthread $^ -lpmem -o $@
 
 ehash_test.o : ehash_test.cpp  $(USER_HEADER_DIR)/pm_ehash.h  $(GTEST_HEADERS)

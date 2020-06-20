@@ -11,4 +11,6 @@ typedef struct data_page {
     // uncompressed page format
 } data_page;
 
+void persist(void *addr);
+
 #endif
