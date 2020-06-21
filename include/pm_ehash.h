@@ -4,13 +4,13 @@
 #include<cstdint>
 #include<queue>
 #include<map>
-#include"data_page.h"
+// #include"data_page.h"
 
 #define BUCKET_SLOT_NUM               15
 #define DEFAULT_CATALOG_SIZE      16
-#define META_NAME                                "pm_ehash_metadata";
-#define CATALOG_NAME                        "pm_ehash_catalog";
-#define PM_EHASH_DIRECTORY        "";        // add your own directory path to store the pm_ehash
+#define META_NAME                                "pm_ehash_metadata"
+#define CATALOG_NAME                        "pm_ehash_catalog"
+#define PM_EHASH_DIRECTORY        "./data"        // add your own directory path to store the pm_ehash
 
 using std::queue;
 using std::map;
@@ -24,6 +24,12 @@ typedef struct pm_address
 {
     uint32_t fileId;
     uint32_t offset;
+	bool operator<(const pm_address & rhs) const {
+		if (fileId != rhs.fileId) {
+			return fileId < rhs.fileId;
+		}
+		return offset < rhs.offset;
+	}
 } pm_address;
 
 /*
@@ -42,10 +48,13 @@ typedef struct pm_bucket
     kv       slot[BUCKET_SLOT_NUM];                                // one slot for one kv-pair
 } pm_bucket;
 
+// in ehash_catalog, the virtual address of buckets_pm_address[n] is stored in buckets_virtual_address
+// buckets_pm_address: open catalog file and store the virtual address of file
+// buckets_virtual_address: store virtual address of bucket that each buckets_pm_address points to
 typedef struct ehash_catalog
 {
     pm_address* buckets_pm_address;         // pm address array of buckets
-    pm_bucket*  buckets_virtual_address;    // virtual address array mapped by pmem_map
+    pm_bucket** buckets_virtual_address;    // virtual address of buckets that buckets_pm_address point to
 } ehash_catalog;
 
 typedef struct ehash_metadata
@@ -80,10 +89,8 @@ private:
     void* getFreeSlot(pm_address& new_address);
     void allocNewPage();
 
-    void recover();
-    void mapAllPage();
-
-	int getKeyIdx(const pm_bucket & bucket, uint64_t key);
+    bool recover();
+    bool mapAllPage();
 
 public:
     PmEHash();
@@ -96,5 +103,33 @@ public:
 
     void selfDestory();
 };
+
+
+
+
+
+
+
+
+
+#define DATA_PAGE_SLOT_NUM 16
+
+// use pm_address to locate the data in the page
+
+// uncompressed page format design to store the buckets of PmEHash
+// one slot stores one bucket of PmEHash
+typedef struct data_page {
+    // fixed-size record design
+    // uncompressed page format
+	pm_bucket slot[DATA_PAGE_SLOT_NUM];
+	uint16_t bitmap;
+} data_page;
+
+void makeDataDirectory();
+void newEHashFiles();
+void* mapFile(const char *path);
+void* mapMetadata();
+void* mapCatalog();
+void clearAll();
 
 #endif

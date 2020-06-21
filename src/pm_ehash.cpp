@@ -6,7 +6,12 @@
  * @return: new instance of PmEHash
  */
 PmEHash::PmEHash() {
-
+	makeDataDirectory();
+	if (recover()) {
+		return;
+	}
+	newEHashFiles();
+	recover();
 }
 /**
  * @description: persist and munmap all data in NVM
@@ -23,15 +28,7 @@ PmEHash::~PmEHash() {
  * @return: 0 = insert successfully, -1 = fail to insert(target data with same key exist)
  */
 int PmEHash::insert(kv new_kv_pair) {
-	uint64_t tem;
-	if (search(new_kv_pair.key, tem) == 0) {
-		return -1;
-	}
-	pm_bucket *bucket = getFreeBucket(new_kv_pair.key);
-	kv *freeSlot = getFreeKvSlot(bucket);
-	*freeSlot = new_kv_pair;
-	persist(freeSlot);
-    return 0;
+    return 1;
 }
 
 /**
@@ -40,15 +37,7 @@ int PmEHash::insert(kv new_kv_pair) {
  * @return: 0 = removing successfully, -1 = fail to remove(target data doesn't exist)
  */
 int PmEHash::remove(uint64_t key) {
-	uint64_t bid = hashFunc(key);
-	pm_bucket & bucket = catalog.buckets_virtual_address[bid];
-	int i = getKeyIdx(bucket, key);
-	if (i == -1) {
-		return -1;
-	}
-	bucket.bitmap[i / 8] &= (~(1 << (i & 7)));
-	// TODO: 维护全局深度，并考虑合并问题
-    return 0;
+    return 1;
 }
 /**
  * @description: 更新现存的键值对的值
@@ -56,14 +45,7 @@ int PmEHash::remove(uint64_t key) {
  * @return: 0 = update successfully, -1 = fail to update(target data doesn't exist)
  */
 int PmEHash::update(kv kv_pair) {
-	uint64_t bid = hashFunc(kv_pair.key);
-	pm_bucket & bucket = catalog.buckets_virtual_address[bid];
-	int i = getKeyIdx(bucket, kv_pair.key);
-	if (i == -1) {
-		return -1;
-	}
-	bucket.slot[i].value = kv_pair.value;
-    return 0;
+    return 1;
 }
 /**
  * @description: 查找目标键值对数据，将返回值放在参数里的引用类型进行返回
@@ -72,30 +54,7 @@ int PmEHash::update(kv kv_pair) {
  * @return: 0 = search successfully, -1 = fail to search(target data doesn't exist) 
  */
 int PmEHash::search(uint64_t key, uint64_t& return_val) {
-	uint64_t bid = hashFunc(key);
-	pm_bucket & bucket = catalog.buckets_virtual_address[bid];
-	int i = getKeyIdx(bucket, key);
-	if (i == -1) {
-		return -1;
-	}
-	return_val = bucket.slot[i].value;
-    return 0;
-}
-
-/**
- * @description: 根据给定桶和目标键，找对应的下标
- */
-int PmEHash::getKeyIdx(const pm_bucket & bucket, uint64_t key) {
-	size_t i;
-	for (i = 0; i < BUCKET_SLOT_NUM; ++i) {
-		if ((bucket.bitmap[i / 8]) >> (i & 7) && bucket.slot[i].key == key) {
-			break;
-		}
-	}
-	if (i == BUCKET_SLOT_NUM) {
-		return -1;
-	}
-	return i;
+    return 1;
 }
 
 /**
@@ -173,19 +132,41 @@ void PmEHash::allocNewPage() {
 /**
  * @description: 读取旧数据文件重新载入哈希，恢复哈希关闭前的状态
  * @param NULL
- * @return: NULL
+ * @return: 是否成功
  */
-void PmEHash::recover() {
-
+bool PmEHash::recover() {
+	metadata = (ehash_metadata*)mapMetadata();
+	catalog.buckets_pm_address = (pm_address*)mapCatalog();
+	mapAllPage();
 }
 
 /**
  * @description: 重启时，将所有数据页进行内存映射，设置地址间的映射关系，空闲的和使用的槽位都需要设置 
  * @param NULL
- * @return: NULL
+ * @return: 是否成功
  */
-void PmEHash::mapAllPage() {
-
+bool PmEHash::mapAllPage() {
+	char tems[15];
+	int i;
+	data_page *page;
+	pm_address pmaddr;
+	for (i = 0; ; ++i) {
+		sprintf(tems, "%s/%d", PM_EHASH_DIRECTORY, i);
+		page = (data_page*)mapFile(tems);
+		if (page == nullptr) {
+			break;
+		}
+		pmaddr.fileId = i;
+		int j;
+		for (j = 0; j < DATA_PAGE_SLOT_NUM; ++j) {
+			pmaddr.offset = j;
+			pmAddr2vAddr[pmaddr] = page->slot + j;
+			vAddr2pmAddr[page->slot + j] = pmaddr;
+			if ((page->bitmap >> j & 1) ^ 1) {
+				free_list.push(page->slot + j);
+			}
+		}
+	}
 }
 
 /**
@@ -194,5 +175,5 @@ void PmEHash::mapAllPage() {
  * @return: NULL
  */
 void PmEHash::selfDestory() {
-
+	clearAll();
 }
