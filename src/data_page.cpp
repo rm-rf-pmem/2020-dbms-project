@@ -65,3 +65,19 @@ void clearAll() {
 	sprintf(tems, "rm -f %s/*", PM_EHASH_DIRECTORY);
 	system(tems);
 }
+
+void doubleCatalog(pm_address *&addr, uint64_t new_size) {
+	new_size *= sizeof(pm_address);
+	pmem_persist(addr, new_size / 2);
+	pmem_unmap(addr, new_size / 2);
+	sprintf(tems, "%s/%s", PM_EHASH_DIRECTORY, CATALOG_NAME);
+	addr = (pm_address*)pmem_map_file(tems, new_size, PMEM_FILE_CREATE, 0777, nullptr, nullptr);
+	memcpy((void*)addr + new_size / 2, (void*)addr, new_size / 2);
+}
+
+data_page* newPage(uint64_t id) {
+	sprintf(tems, "%s/%lu", PM_EHASH_DIRECTORY, id);
+	data_page *rt = (data_page*)pmem_map_file(tems, sizeof(data_page), PMEM_FILE_CREATE, 0777, nullptr, nullptr);
+	rt->bitmap = 0;
+	return rt;
+}

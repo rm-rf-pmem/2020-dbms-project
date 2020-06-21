@@ -86,6 +86,8 @@ typedef struct ehash_metadata
     uint64_t global_depth;   // global depth of PmEHash
 } ehash_metadata;
 
+struct data_page;
+
 class PmEHash
 {
 private:
@@ -96,6 +98,7 @@ private:
     queue<pm_bucket*>                         free_list;                      //all free slots in data pages to store buckets
     map<pm_bucket*, pm_address> vAddr2pmAddr;       // map virtual address to pm_address, used to find specific pm_address
     map<pm_address, pm_bucket*> pmAddr2vAddr;       // map pm_address to virtual address, used to find specific virtual address
+	data_page **pages;
     
     uint64_t hashFunc(uint64_t key);
 
@@ -155,5 +158,7 @@ void* mapFile(const char *path);
 void* mapMetadata();
 void* mapCatalog();
 void clearAll();
+void doubleCatalog(pm_address *&addr, uint64_t new_size );
+data_page* newPage(uint64_t id);
 
 #endif

@@ -1,7 +1,5 @@
 #include"pm_ehash.h"
-#include <fstream>
-
-std::ofstream fout("log.txt");
+#include <cstring>
 
 /**
  * @description: construct a new instance of PmEHash in a default directory
@@ -88,7 +86,6 @@ int PmEHash::search(uint64_t key, uint64_t& return_val) {
 	}
 	return_val = bucket->slot[idx].value;
 //	return_val = idx;
-	fout << "haha\n";
     return 0;
 }
 
@@ -119,7 +116,13 @@ uint64_t PmEHash::hashFunc(uint64_t key) {
 pm_bucket* PmEHash::getFreeBucket(uint64_t key) {
 	// TODO: this is dummy and it must be modified
 	uint64_t bid = hashFunc(key);
-	return catalog.buckets_virtual_address[bid];
+	pm_bucket *bucket = catalog.buckets_virtual_address[bid];
+	while (bucket->isFull()) {
+		splitBucket(bid);
+		bid = hashFunc(key);
+		bucket = catalog.buckets_virtual_address[bid];
+	}
+	return bucket;
 }
 
 /**
@@ -143,7 +146,30 @@ kv* PmEHash::getFreeKvSlot(pm_bucket* bucket) {
  * @return: NULL
  */
 void PmEHash::splitBucket(uint64_t bucket_id) {
+	pm_bucket *bucket = catalog.buckets_virtual_address[bucket_id];
+	if (bucket->local_depth == metadata->global_depth) {
+		extendCatalog();
+	}
+	++bucket->local_depth;
+	const uint64_t ldepth = bucket->local_depth;
+	const uint64_t cucket_id = bucket_id | (1 << (ldepth - 1));
+	catalog.buckets_virtual_address[cucket_id] = (pm_bucket*)getFreeSlot(catalog.buckets_pm_address[cucket_id]);
+	pm_bucket *cucket = catalog.buckets_virtual_address[cucket_id];
 
+	/* 把原来的桶中部分元素移入新桶 */
+	int num = 0;
+	for (int i = 0; i < BUCKET_SLOT_NUM; ++i) {
+		if (!bucket->get(i)) {
+			continue;
+		}
+		if (hashFunc(bucket->slot[i].key) == bucket_id) {
+			continue;
+		}
+		cucket->slot[num] = bucket->slot[i];
+		bucket->reset(i);
+		cucket->set(num);
+		++num;
+	}
 }
 
 /**
@@ -161,7 +187,16 @@ void PmEHash::mergeBucket(uint64_t bucket_id) {
  * @return: NULL
  */
 void PmEHash::extendCatalog() {
+	++metadata->global_depth;
+	metadata->catalog_size *= 2;
+	doubleCatalog(catalog.buckets_pm_address, metadata->catalog_size);
 
+	/* 倍增内存中的虚拟地址 */
+	pm_bucket **new_virtual_address = new pm_bucket*[metadata->catalog_size];
+	memcpy(new_virtual_address, catalog.buckets_virtual_address, sizeof(pm_bucket) * metadata->catalog_size / 2);
+	memcpy(new_virtual_address + metadata->catalog_size / 2, catalog.buckets_virtual_address, sizeof(pm_bucket) * metadata->catalog_size / 2);
+	delete[] catalog.buckets_virtual_address;
+	catalog.buckets_virtual_address = new_virtual_address;
 }
 
 /**
@@ -170,7 +205,14 @@ void PmEHash::extendCatalog() {
  * @return: 新槽位的虚拟地址
  */
 void* PmEHash::getFreeSlot(pm_address& new_address) {
-
+	if (free_list.empty()) {
+		allocNewPage();
+	}
+	pm_bucket *bucket = free_list.front();
+	free_list.pop();
+	new_address = vAddr2pmAddr[bucket];
+	pages[new_address.fileId]->bitmap |= (1 << new_address.offset);
+	return bucket;
 }
 
 /**
@@ -179,7 +221,24 @@ void* PmEHash::getFreeSlot(pm_address& new_address) {
  * @return: NULL
  */
 void PmEHash::allocNewPage() {
+	const uint64_t n = metadata->max_file_id;
+	data_page **new_pages = new data_page*[n * 2];
+	memcpy(new_pages, pages, sizeof(data_page*) * n);
+	delete[] pages;
+	pages = new_pages;
+	pages[n] = newPage(n);
 
+	pm_address pm_addr;
+	pm_addr.fileId = n;
+	
+	for (int j = 0; j < DATA_PAGE_SLOT_NUM; ++j) {
+		pm_addr.offset = j;
+		pmAddr2vAddr[pm_addr] = pages[n]->slot + j;
+		vAddr2pmAddr[pages[n]->slot + j] = pm_addr;
+		free_list.push(pages[n]->slot + j);
+	}
+
+	++metadata->max_file_id;
 }
 
 /**
@@ -213,25 +272,26 @@ bool PmEHash::recover() {
 bool PmEHash::mapAllPage() {
 	char tems[15];
 	int i;
-	data_page *page;
 	pm_address pmaddr;
-	for (i = 0; ; ++i) {
+	pages = new data_page*[metadata->max_file_id];
+	for (i = 0; i < metadata->max_file_id; ++i) {
 		sprintf(tems, "%s/%d", PM_EHASH_DIRECTORY, i);
-		page = (data_page*)mapFile(tems);
-		if (page == nullptr) {
-			break;
+		pages[i] = (data_page*)mapFile(tems);
+		if (pages[i] == nullptr) {
+			return false;
 		}
 		pmaddr.fileId = i;
 		int j;
 		for (j = 0; j < DATA_PAGE_SLOT_NUM; ++j) {
 			pmaddr.offset = j;
-			pmAddr2vAddr[pmaddr] = page->slot + j;
-			vAddr2pmAddr[page->slot + j] = pmaddr;
-			if ((page->bitmap >> j & 1) ^ 1) {
-				free_list.push(page->slot + j);
+			pmAddr2vAddr[pmaddr] = pages[i]->slot + j;
+			vAddr2pmAddr[pages[i]->slot + j] = pmaddr;
+			if ((pages[i]->bitmap >> j & 1) ^ 1) {
+				free_list.push(pages[i]->slot + j);
 			}
 		}
 	}
+	return true;
 }
 
 /**
