@@ -1,4 +1,7 @@
 #include"pm_ehash.h"
+#include <fstream>
+
+std::ofstream fout("log.txt");
 
 /**
  * @description: construct a new instance of PmEHash in a default directory
@@ -28,7 +31,16 @@ PmEHash::~PmEHash() {
  * @return: 0 = insert successfully, -1 = fail to insert(target data with same key exist)
  */
 int PmEHash::insert(kv new_kv_pair) {
-    return 1;
+	uint64_t val;
+	if (search(new_kv_pair.key, val) == 0) {
+		return -1;
+	}
+	pm_bucket *bucket = getFreeBucket(new_kv_pair.key);
+	kv *slot = getFreeKvSlot(bucket);
+	*slot = new_kv_pair;
+	int idx = slot - bucket->slot;
+	bucket->set(idx);
+    return 0;
 }
 
 /**
@@ -37,7 +49,14 @@ int PmEHash::insert(kv new_kv_pair) {
  * @return: 0 = removing successfully, -1 = fail to remove(target data doesn't exist)
  */
 int PmEHash::remove(uint64_t key) {
-    return 1;
+	uint64_t bid = hashFunc(key);
+	pm_bucket *bucket = catalog.buckets_virtual_address[bid];
+	int idx = getKeyIdx(bucket, key);
+	if (idx == -1) {
+		return -1;
+	}
+	bucket->reset(idx);
+    return 0;
 }
 /**
  * @description: 更新现存的键值对的值
@@ -45,7 +64,14 @@ int PmEHash::remove(uint64_t key) {
  * @return: 0 = update successfully, -1 = fail to update(target data doesn't exist)
  */
 int PmEHash::update(kv kv_pair) {
-    return 1;
+	uint64_t bid = hashFunc(kv_pair.key);
+	pm_bucket *bucket = catalog.buckets_virtual_address[bid];
+	int idx = getKeyIdx(bucket, kv_pair.key);
+	if (idx == -1) {
+		return -1;
+	}
+	bucket->slot[idx].value = kv_pair.value;
+    return 0;
 }
 /**
  * @description: 查找目标键值对数据，将返回值放在参数里的引用类型进行返回
@@ -54,7 +80,25 @@ int PmEHash::update(kv kv_pair) {
  * @return: 0 = search successfully, -1 = fail to search(target data doesn't exist) 
  */
 int PmEHash::search(uint64_t key, uint64_t& return_val) {
-    return 1;
+	uint64_t bid = hashFunc(key);
+	const pm_bucket *bucket = catalog.buckets_virtual_address[bid];
+	int idx = getKeyIdx(bucket, key);
+	if (idx == -1) {
+		return -1;
+	}
+	return_val = bucket->slot[idx].value;
+//	return_val = idx;
+	fout << "haha\n";
+    return 0;
+}
+
+int PmEHash::getKeyIdx(const pm_bucket *bucket, uint64_t key) const {
+	for (int i = 0; i < BUCKET_SLOT_NUM; ++i) {
+		if (bucket->get(i) && bucket->slot[i].key == key) {
+			return i;
+		}
+	}
+	return -1;
 }
 
 /**
@@ -63,7 +107,8 @@ int PmEHash::search(uint64_t key, uint64_t& return_val) {
  * @return: 返回键所属的桶号
  */
 uint64_t PmEHash::hashFunc(uint64_t key) {
-
+	// TODO: 用一个更好的哈希
+	return key & ((1ULL << metadata->global_depth) - 1);
 }
 
 /**
@@ -72,7 +117,9 @@ uint64_t PmEHash::hashFunc(uint64_t key) {
  * @return: 空闲桶的虚拟地址
  */
 pm_bucket* PmEHash::getFreeBucket(uint64_t key) {
-
+	// TODO: this is dummy and it must be modified
+	uint64_t bid = hashFunc(key);
+	return catalog.buckets_virtual_address[bid];
 }
 
 /**
@@ -81,7 +128,13 @@ pm_bucket* PmEHash::getFreeBucket(uint64_t key) {
  * @return: 空闲键值对位置的虚拟地址
  */
 kv* PmEHash::getFreeKvSlot(pm_bucket* bucket) {
-
+	// TODO: can be optimized
+	for (int i = 0; i < BUCKET_SLOT_NUM; ++i) {
+		if (!bucket->get(i)) {
+			return bucket->slot + i;
+		}
+	}
+	return nullptr;
 }
 
 /**
@@ -136,8 +189,20 @@ void PmEHash::allocNewPage() {
  */
 bool PmEHash::recover() {
 	metadata = (ehash_metadata*)mapMetadata();
+	if (metadata == nullptr) {
+		return false;
+	}
 	catalog.buckets_pm_address = (pm_address*)mapCatalog();
+	if (catalog.buckets_pm_address == nullptr) {
+		return false;
+	}
 	mapAllPage();
+	catalog.buckets_virtual_address = new pm_bucket*[metadata->catalog_size];
+	int i;
+	for (i = 0; i < metadata->catalog_size; ++i) {
+		catalog.buckets_virtual_address[i] = pmAddr2vAddr[catalog.buckets_pm_address[i]];
+	}
+	return true;
 }
 
 /**

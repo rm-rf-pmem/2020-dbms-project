@@ -46,6 +46,28 @@ typedef struct pm_bucket
     uint64_t local_depth;
     uint8_t  bitmap[BUCKET_SLOT_NUM / 8 + 1];      // one bit for each slot
     kv       slot[BUCKET_SLOT_NUM];                                // one slot for one kv-pair
+	bool get(int p) const {
+		return bitmap[p / 8] >> (p % 8) & 1;
+	}
+	void set(int p) {
+		bitmap[p / 8] |= (1 << (p % 8));
+	}
+	void reset(int p) {
+		bitmap[p / 8] &= (~(1 << (p % 8)));
+	}
+	bool isFull() const {
+		const int lmt = sizeof(bitmap) / sizeof(bitmap[0]) - 1;
+		for (int i = 0; i < lmt; ++i) {
+			if (bitmap[i] != 0xFF) {
+				return false;
+			}
+		}
+		int left = BUCKET_SLOT_NUM - lmt * 8;
+		if (bitmap[lmt] != ((1 << left) - 1)) {
+			return false;
+		}
+		return true;
+	}
 } pm_bucket;
 
 // in ehash_catalog, the virtual address of buckets_pm_address[n] is stored in buckets_virtual_address
@@ -91,6 +113,8 @@ private:
 
     bool recover();
     bool mapAllPage();
+
+	int getKeyIdx(const pm_bucket * bucket, uint64_t key) const;
 
 public:
     PmEHash();
