@@ -4,7 +4,6 @@
 #include<cstdint>
 #include<queue>
 #include<map>
-#include <functional>
 
 // #include"data_page.h"
 
@@ -102,7 +101,6 @@ private:
     map<pm_bucket*, pm_address> vAddr2pmAddr;       // map virtual address to pm_address, used to find specific pm_address
     map<pm_address, pm_bucket*> pmAddr2vAddr;       // map pm_address to virtual address, used to find specific virtual address
 	data_page **pages;
-	std::hash<uint64_t> hash;
     
 	uint64_t hashFunc(uint64_t key);
 	uint64_t getLowBits(uint64_t target, size_t numBits);

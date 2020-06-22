@@ -100,8 +100,10 @@ int PmEHash::getKeyIdx(const pm_bucket *bucket, uint64_t key) const {
 
 uint64_t PmEHash::hashFunc(uint64_t key) {
 	// TODO: 用一个更好的哈希
-//	return key;
-	return hash(key);
+	key = (key ^ (key >> 31) ^ (key >> 62)) * UINT64_C(0x319642b2d24d8ec3);
+	key = (key ^ (key >> 27) ^ (key >> 54)) * UINT64_C(0x96de1b173f119089);
+	key = key ^ (key >> 30) ^ (key >> 60);
+	return key;
 }
 
 uint64_t PmEHash::getLowBits(uint64_t target, size_t numBits) {
