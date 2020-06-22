@@ -32,7 +32,6 @@ PmEHash::~PmEHash() {
  * @return: 0 = insert successfully, -1 = fail to insert(target data with same key exist)
  */
 int PmEHash::insert(kv new_kv_pair) {
-//	printf("insert %lu\n", new_kv_pair.key);
 	the_key = new_kv_pair.key;
 	uint64_t val;
 	if (search(new_kv_pair.key, val) == 0) {
@@ -128,7 +127,6 @@ uint64_t PmEHash::getCatalogIdx(uint64_t key) {
 pm_bucket* PmEHash::getFreeBucket(uint64_t key) {
 	uint64_t bid = getCatalogIdx(key);
 	pm_bucket *bucket = catalog.buckets_virtual_address[bid];
-//	printf("getFreeBucket %lu\n", key);
 	while (bucket->isFull()) {
 		splitBucket(getLowBits(bid, bucket->local_depth));
 		bid = getCatalogIdx(key);
@@ -158,9 +156,11 @@ kv* PmEHash::getFreeKvSlot(pm_bucket* bucket) {
  * @return: NULL
  */
 void PmEHash::splitBucket(uint64_t bucket_id) {
+//	pm_bucket *tbucket = catalog.buckets_virtual_address[bucket_id];
+//	printf("the_key = %lu, cataid = %lu, locid = %lu\n, lDepth = %lu\n", the_key, getCatalogIdx(the_key), getLowBits(hashFunc(the_key), tbucket->local_depth), tbucket->local_depth);
 //	printf("           ");
 //	for (int j = 0; j < 15; ++j) {
-//		printf("%4d", j);
+//		printf("%7d", j);
 //	}
 //	putchar('\n');
 //	for (int i = 0; i < metadata->catalog_size; ++i) {
@@ -169,13 +169,16 @@ void PmEHash::splitBucket(uint64_t bucket_id) {
 //		printf("%2d (%2d,%2d) ", i, addr.fileId, addr.offset);
 //		for (int j = 0; j < 15; ++j) {
 //			if (bucket->get(j)) {
-//				printf("%4lu", bucket->slot[j].key);
+//				printf("%7lu", bucket->slot[j].key);
+//			}
+//			else {
+//				printf("       ");
 //			}
 //		}
 //		putchar('\n');
 //	}
-//	puts("\n\n\n\n\n");
-//
+//	puts("");
+
 	pm_bucket *bucket = catalog.buckets_virtual_address[bucket_id];
 	if (bucket->local_depth == metadata->global_depth) {
 		extendCatalog();
@@ -183,10 +186,19 @@ void PmEHash::splitBucket(uint64_t bucket_id) {
 	++bucket->local_depth;
 	const uint64_t ldepth = bucket->local_depth;
 	const uint64_t cucket_id = bucket_id | (1 << (ldepth - 1));
-	catalog.buckets_virtual_address[cucket_id] = (pm_bucket*)getFreeSlot(catalog.buckets_pm_address[cucket_id]);
-	pm_bucket *cucket = catalog.buckets_virtual_address[cucket_id];
+
+	pm_bucket *cucket = (pm_bucket*)getFreeSlot(catalog.buckets_pm_address[cucket_id]);
 	cucket->local_depth = ldepth;
 	memset(cucket->bitmap, 0, sizeof(cucket->bitmap));
+
+	/* 新增的桶的子树全部指向新增的桶 */
+	uint64_t lmt = 1ULL << (metadata->global_depth - ldepth);
+	uint64_t tid;
+	for (uint64_t hi = 0; hi < lmt; ++hi) {
+		tid = (hi << ldepth) | cucket_id;
+		catalog.buckets_pm_address[tid] = catalog.buckets_pm_address[cucket_id];
+		catalog.buckets_virtual_address[tid] = cucket;
+	}
 
 	/* 把原来的桶中部分元素移入新桶 */
 	int num = 0;
@@ -195,9 +207,6 @@ void PmEHash::splitBucket(uint64_t bucket_id) {
 			continue;
 		}
 		if (getLowBits(hashFunc(bucket->slot[i].key), ldepth) == bucket_id) {
-//			if (the_key == 241) {
-//				printf("hash = %lu\n", getCatalogIdx(bucket->slot[i].key));
-//			}
 			continue;
 		}
 		cucket->slot[num] = bucket->slot[i];
@@ -205,6 +214,31 @@ void PmEHash::splitBucket(uint64_t bucket_id) {
 		cucket->set(num);
 		++num;
 	}
+
+//	printf("aft:\n");
+//	printf("           ");
+//	for (int j = 0; j < 15; ++j) {
+//		printf("%7d", j);
+//	}
+//	putchar('\n');
+//	for (int i = 0; i < metadata->catalog_size; ++i) {
+//		const pm_bucket *bucket = catalog.buckets_virtual_address[i];
+//		const pm_address addr = catalog.buckets_pm_address[i];
+//		printf("%2d (%2d,%2d) ", i, addr.fileId, addr.offset);
+//		for (int j = 0; j < 15; ++j) {
+//			if (bucket->get(j)) {
+//				printf("%7lu", bucket->slot[j].key);
+//			}
+//			else {
+//				printf("       ");
+//			}
+//		}
+//		putchar('\n');
+//	}
+//	puts("\n\n\n\n\n\n");
+//	if (metadata->global_depth == 9) {
+//		exit(0);
+//	}
 }
 
 /**
@@ -268,7 +302,7 @@ void PmEHash::allocNewPage() {
 	pmaddr.fileId = n;
 
 	for (int j = 0; j < DATA_PAGE_SLOT_NUM; ++j) {
-		pmaddr.offset = 0;
+		pmaddr.offset = j;
 		pm_bucket *vaddr = pages[n]->slot + j;
 		pmAddr2vAddr[pmaddr] = vaddr;
 		vAddr2pmAddr[vaddr] = pmaddr;

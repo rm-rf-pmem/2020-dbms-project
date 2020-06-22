@@ -8,6 +8,21 @@
 
 using namespace std;
 
+TEST(RandomTest, YF) {
+	PmEHash *ehash = new PmEHash;
+	int result;
+	kv tem;
+	srand(time(0));
+	for (int i = 0; i < 1000000; ++i) {
+		tem.key = rand();
+		tem.value = tem.key ^ 1;
+		result = ehash->insert(tem);
+//		GTEST_ASSERT_EQ(result, 0);
+	}
+
+	ehash->selfDestory();
+}
+
 TEST(BigTest, YF) {
 	PmEHash* ehash = new PmEHash;
 	kv tem;
