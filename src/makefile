@@ -13,3 +13,6 @@ ycsb:	ycsb.o pm_ehash.o data_page.o cmd.o
 
 clean: 
 	@rm *.o
+
+cleand:
+	@rm -r data

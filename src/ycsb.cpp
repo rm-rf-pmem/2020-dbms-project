@@ -8,6 +8,7 @@
 #include <string.h>
 #include <cstdio>
 #include <time.h>
+#include <cstdlib>
 
 using namespace std;
 
@@ -95,8 +96,10 @@ void loadFile(txtInfo file, PmEHash *db = nullptr)
 
     // 构建 kv 对
     string k = data.substr(0, 8);
-    int v = atoi(data.substr(8).c_str());
+    uint64_t v = atoi(data.substr(8).c_str());
     kv kv_pair;
+    // kv_pair.key = rand();
+    // kv_pair.value = rand();
     kv_pair.key = stringTo64(k);
     kv_pair.value = v;
 
@@ -198,16 +201,16 @@ int main()
 {
   // 调试用的
   getFileList();
-  PmEHash *db = new PmEHash();
-  loadFile(files[5], db);
-  runFile(files[5], db);
-  db->selfDestory();
+  // PmEHash *db = new PmEHash();
+  // loadFile(files[5], db);
+  // runFile(files[5], db);
+  // db->selfDestory();
 
-  // for (int i = 0; i < testNum; i++)
-  // {
-  //   PmEHash *db = new PmEHash();
-  //   loadFile(files[i], db);
-  //   runFile(files[i], db);
-  //   db->selfDestory();
-  // }
+  for (int i = 0; i < testNum; i++)
+  {
+    PmEHash *db = new PmEHash();
+    loadFile(files[i], db);
+    runFile(files[i], db);
+    db->selfDestory();
+  }
 }
