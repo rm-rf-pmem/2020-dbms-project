@@ -1,8 +1,6 @@
 #include"pm_ehash.h"
 #include <cstring>
 
-static uint64_t the_key;
-
 /**
  * @description: construct a new instance of PmEHash in a default directory
  * @param NULL
@@ -32,7 +30,6 @@ PmEHash::~PmEHash() {
  * @return: 0 = insert successfully, -1 = fail to insert(target data with same key exist)
  */
 int PmEHash::insert(kv new_kv_pair) {
-	the_key = new_kv_pair.key;
 	uint64_t val;
 	if (search(new_kv_pair.key, val) == 0) {
 		return -1;
@@ -156,29 +153,6 @@ kv* PmEHash::getFreeKvSlot(pm_bucket* bucket) {
  * @return: NULL
  */
 void PmEHash::splitBucket(uint64_t bucket_id) {
-//	pm_bucket *tbucket = catalog.buckets_virtual_address[bucket_id];
-//	printf("the_key = %lu, cataid = %lu, locid = %lu\n, lDepth = %lu\n", the_key, getCatalogIdx(the_key), getLowBits(hashFunc(the_key), tbucket->local_depth), tbucket->local_depth);
-//	printf("           ");
-//	for (int j = 0; j < 15; ++j) {
-//		printf("%7d", j);
-//	}
-//	putchar('\n');
-//	for (int i = 0; i < metadata->catalog_size; ++i) {
-//		const pm_bucket *bucket = catalog.buckets_virtual_address[i];
-//		const pm_address addr = catalog.buckets_pm_address[i];
-//		printf("%2d (%2d,%2d) ", i, addr.fileId, addr.offset);
-//		for (int j = 0; j < 15; ++j) {
-//			if (bucket->get(j)) {
-//				printf("%7lu", bucket->slot[j].key);
-//			}
-//			else {
-//				printf("       ");
-//			}
-//		}
-//		putchar('\n');
-//	}
-//	puts("");
-
 	pm_bucket *bucket = catalog.buckets_virtual_address[bucket_id];
 	if (bucket->local_depth == metadata->global_depth) {
 		extendCatalog();
@@ -214,31 +188,6 @@ void PmEHash::splitBucket(uint64_t bucket_id) {
 		cucket->set(num);
 		++num;
 	}
-
-//	printf("aft:\n");
-//	printf("           ");
-//	for (int j = 0; j < 15; ++j) {
-//		printf("%7d", j);
-//	}
-//	putchar('\n');
-//	for (int i = 0; i < metadata->catalog_size; ++i) {
-//		const pm_bucket *bucket = catalog.buckets_virtual_address[i];
-//		const pm_address addr = catalog.buckets_pm_address[i];
-//		printf("%2d (%2d,%2d) ", i, addr.fileId, addr.offset);
-//		for (int j = 0; j < 15; ++j) {
-//			if (bucket->get(j)) {
-//				printf("%7lu", bucket->slot[j].key);
-//			}
-//			else {
-//				printf("       ");
-//			}
-//		}
-//		putchar('\n');
-//	}
-//	puts("\n\n\n\n\n\n");
-//	if (metadata->global_depth == 9) {
-//		exit(0);
-//	}
 }
 
 /**
@@ -258,7 +207,6 @@ void PmEHash::mergeBucket(uint64_t bucket_id) {
 void PmEHash::extendCatalog() {
 	++metadata->global_depth;
 	metadata->catalog_size *= 2;
-	printf("the_key = %lu, gDepth = %lu, metadata->catalog_size = %lu\n", the_key, metadata->global_depth, metadata->catalog_size);
 	doubleCatalog(catalog.buckets_pm_address, metadata->catalog_size);
 
 	/* 倍增内存中的虚拟地址 */
