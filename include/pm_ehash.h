@@ -4,7 +4,8 @@
 #include<cstdint>
 #include<queue>
 #include<map>
-#include <unordered_map>
+#include <functional>
+
 // #include"data_page.h"
 
 #define BUCKET_SLOT_NUM               15
@@ -12,11 +13,10 @@
 #define META_NAME                                "pm_ehash_metadata"
 #define CATALOG_NAME                        "pm_ehash_catalog"
 // #define PM_EHASH_DIRECTORY        "./data"        // add your own directory path to store the pm_ehash
-#define PM_EHASH_DIRECTORY        "/mnt/pmemdir/data"        // add your own directory path to store the pm_ehash
+#define PM_EHASH_DIRECTORY        "./data"        // add your own directory path to store the pm_ehash
 
 using std::queue;
 using std::map;
-using std::unordered_map;
 
 /* 
 ---the physical address of data in NVM---
@@ -102,6 +102,7 @@ private:
     map<pm_bucket*, pm_address> vAddr2pmAddr;       // map virtual address to pm_address, used to find specific pm_address
     map<pm_address, pm_bucket*> pmAddr2vAddr;       // map pm_address to virtual address, used to find specific virtual address
 	data_page **pages;
+	std::hash<uint64_t> hash;
     
 	uint64_t hashFunc(uint64_t key);
 	uint64_t getLowBits(uint64_t target, size_t numBits);
