@@ -53,6 +53,29 @@ void* mapFile(const char *path) {
 
 void* mapMetadata() {
 	sprintf(tems, "%s/%s", PM_EHASH_DIRECTORY, META_NAME);
+	
+//	void *rt = mapFile(tems);
+//	ehash_metadata *metadata = (ehash_metadata*)rt;
+//	if (metadata == nullptr) {
+//		return nullptr;
+//	}
+//	printf("in: ready to ++\n");
+//	++metadata->global_depth;
+//	printf("in: ++success\n");
+//	return rt;
+
+//	ehash_metadata *metadata = (ehash_metadata*)mapFile(tems);;
+//	printf("in: ready to ++\n");
+//	++metadata->global_depth;
+//	printf("in: ++success\n");
+//	return metadata;
+
+//	ehash_metadata *metadata = (ehash_metadata*)pmem_map_file(tems, 0, 0, 0, nullptr, nullptr);
+//	metadata->max_file_id = 1;
+//	metadata->catalog_size = DEFAULT_CATALOG_SIZE;
+//	metadata->global_depth = 4;
+//	return metadata;
+
 	return mapFile(tems);
 }
 

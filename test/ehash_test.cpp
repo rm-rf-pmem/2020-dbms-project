@@ -77,3 +77,16 @@ TEST(RemoveTest, SingleRemove) {
     GTEST_ASSERT_EQ(val, 0);
     ehash->selfDestory();
 }
+
+TEST(BigTest, YF) {
+	PmEHash* ehash = new PmEHash;
+	kv tem;
+	int result;
+	for (int i = 0; i < 241; ++i) {
+		tem.key = i;
+		tem.value = i ^ 1;
+		result = ehash->insert(tem);
+		GTEST_ASSERT_EQ(result, 0);
+	}
+	ehash->selfDestory();
+}
