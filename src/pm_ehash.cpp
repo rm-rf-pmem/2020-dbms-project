@@ -210,6 +210,8 @@ void PmEHash::mergeBucket(uint64_t bucket_id) {
 void PmEHash::extendCatalog() {
 	++metadata->global_depth;
 	metadata->catalog_size *= 2;
+	// 调试用的
+	// printf("gDepth = %lu, metadata->catalog_size = %lu\n", metadata->global_depth, metadata->catalog_size);
 	doubleCatalog(catalog.buckets_pm_address, metadata->catalog_size);
 
 	/* 倍增内存中的虚拟地址 */

@@ -107,8 +107,8 @@ void loadFile(txtInfo file, PmEHash *db = nullptr)
     db->insert(kv_pair); //插入操作
 
     dataNum++;
-    if (dataNum % 10000 == 0) // 每1W次操作就进行一次输出
-      cout << "[STATUS] has load " << dataNum << "/" << file.getDataSize() << " data" << endl;
+    // if (dataNum % 100000 == 0) // 每1W次操作就进行一次输出
+    //   cout << "[STATUS] has load " << dataNum << "/" << file.getDataSize() << " data" << endl;
   }
 
   time_t end = clock(); // 计时结束
@@ -179,8 +179,8 @@ void runFile(txtInfo file, PmEHash *db = nullptr)
     // 好像没见到删除
 
     cmdNum++;
-    if (cmdNum % 10000 == 0) // 每1W次操作删除一次
-      cout << "[STATUS] has run " << cmdNum << " command" << endl;
+    // if (cmdNum % 1000000 == 0) // 每1W次操作删除一次
+    //   cout << "[STATUS] has run " << cmdNum << " command" << endl;
   }
   time_t end = clock(); // finish run
 
