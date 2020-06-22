@@ -9,6 +9,7 @@
 PmEHash::PmEHash() {
 	makeDataDirectory();
 	if (recover()) {
+		printf("WHAT???\n");
 		return;
 	}
 	newEHashFiles();
@@ -114,7 +115,6 @@ uint64_t PmEHash::hashFunc(uint64_t key) {
  * @return: 空闲桶的虚拟地址
  */
 pm_bucket* PmEHash::getFreeBucket(uint64_t key) {
-	// TODO: this is dummy and it must be modified
 	uint64_t bid = hashFunc(key);
 	pm_bucket *bucket = catalog.buckets_virtual_address[bid];
 	while (bucket->isFull()) {
@@ -221,6 +221,7 @@ void* PmEHash::getFreeSlot(pm_address& new_address) {
  * @return: NULL
  */
 void PmEHash::allocNewPage() {
+	printf("allocNewPage\n");
 	const uint64_t n = metadata->max_file_id;
 	data_page **new_pages = new data_page*[n * 2];
 	memcpy(new_pages, pages, sizeof(data_page*) * n);
@@ -234,7 +235,9 @@ void PmEHash::allocNewPage() {
 	for (int j = 0; j < DATA_PAGE_SLOT_NUM; ++j) {
 		pm_addr.offset = j;
 		pmAddr2vAddr[pm_addr] = pages[n]->slot + j;
+		printf("%d         hahahahh\n", j);
 		vAddr2pmAddr[pages[n]->slot + j] = pm_addr;
+		printf("%d         aft\n", j);
 		free_list.push(pages[n]->slot + j);
 	}
 
@@ -251,6 +254,9 @@ bool PmEHash::recover() {
 	if (metadata == nullptr) {
 		return false;
 	}
+//	printf("metadata: %lu %lu %lu\n", metadata->max_file_id, metadata->global_depth, metadata->catalog_size);
+//	++metadata->global_depth;
+//	printf("recover: ++success\n");
 	catalog.buckets_pm_address = (pm_address*)mapCatalog();
 	if (catalog.buckets_pm_address == nullptr) {
 		return false;
