@@ -5,7 +5,7 @@ CC := g++
 INCDIR := ../include
 FLAGS := -std=c++11 -w
 
-ycsb:	ycsb.o pm_ehash.o data_page.o
+ycsb:	ycsb.o pm_ehash.o data_page.o cmd.o
 	${CC} ${FLAGS} -o $@ $^ -lpmem 
 
 %.o: %.cpp
