@@ -2,6 +2,8 @@
 #include "../include/pm_ehash.h"
 #include <cstring>
 
+static uint64_t the_key;
+
 /**
  * @description: construct a new instance of PmEHash in a default directory
  * @param NULL
@@ -32,8 +34,9 @@ PmEHash::~PmEHash()
  * @param kv: 插入的键值对
  * @return: 0 = insert successfully, -1 = fail to insert(target data with same key exist)
  */
-int PmEHash::insert(kv new_kv_pair)
-{
+int PmEHash::insert(kv new_kv_pair) {
+//	printf("insert %lu\n", new_kv_pair.key);
+	the_key = new_kv_pair.key;
 	uint64_t val;
 	if (search(new_kv_pair.key, val) == 0)
 	{
@@ -52,9 +55,8 @@ int PmEHash::insert(kv new_kv_pair)
  * @param uint64_t: 要删除的目标键值对的键
  * @return: 0 = removing successfully, -1 = fail to remove(target data doesn't exist)
  */
-int PmEHash::remove(uint64_t key)
-{
-	uint64_t bid = hashFunc(key);
+int PmEHash::remove(uint64_t key) {
+	uint64_t bid = getCatalogIdx(key);
 	pm_bucket *bucket = catalog.buckets_virtual_address[bid];
 	int idx = getKeyIdx(bucket, key);
 	if (idx == -1)
@@ -69,9 +71,8 @@ int PmEHash::remove(uint64_t key)
  * @param kv: 更新的键值对，有原键和新值
  * @return: 0 = update successfully, -1 = fail to update(target data doesn't exist)
  */
-int PmEHash::update(kv kv_pair)
-{
-	uint64_t bid = hashFunc(kv_pair.key);
+int PmEHash::update(kv kv_pair) {
+	uint64_t bid = getCatalogIdx(kv_pair.key);
 	pm_bucket *bucket = catalog.buckets_virtual_address[bid];
 	int idx = getKeyIdx(bucket, kv_pair.key);
 	if (idx == -1)
@@ -87,9 +88,8 @@ int PmEHash::update(kv kv_pair)
  * @param uint64_t&: 查询成功后返回的目标值
  * @return: 0 = search successfully, -1 = fail to search(target data doesn't exist) 
  */
-int PmEHash::search(uint64_t key, uint64_t &return_val)
-{
-	uint64_t bid = hashFunc(key);
+int PmEHash::search(uint64_t key, uint64_t& return_val) {
+	uint64_t bid = getCatalogIdx(key);
 	const pm_bucket *bucket = catalog.buckets_virtual_address[bid];
 	int idx = getKeyIdx(bucket, key);
 	if (idx == -1)
@@ -97,8 +97,7 @@ int PmEHash::search(uint64_t key, uint64_t &return_val)
 		return -1;
 	}
 	return_val = bucket->slot[idx].value;
-	//	return_val = idx;
-	return 0;
+    return 0;
 }
 
 int PmEHash::getKeyIdx(const pm_bucket *bucket, uint64_t key) const
@@ -113,15 +112,22 @@ int PmEHash::getKeyIdx(const pm_bucket *bucket, uint64_t key) const
 	return -1;
 }
 
+uint64_t PmEHash::hashFunc(uint64_t key) {
+	// TODO: 用一个更好的哈希
+	return key;
+}
+
+uint64_t PmEHash::getLowBits(uint64_t target, size_t numBits) {
+	return target & ((1ULL << numBits) - 1);
+}
+
 /**
  * @description: 用于对输入的键产生哈希值，然后取模求桶号(自己挑选合适的哈希函数处理)
  * @param uint64_t: 输入的键
  * @return: 返回键所属的桶号
  */
-uint64_t PmEHash::hashFunc(uint64_t key)
-{
-	// TODO: 用一个更好的哈希
-	return key & ((1ULL << metadata->global_depth) - 1);
+uint64_t PmEHash::getCatalogIdx(uint64_t key) {
+	return getLowBits(hashFunc(key), metadata->global_depth);
 }
 
 /**
@@ -129,14 +135,13 @@ uint64_t PmEHash::hashFunc(uint64_t key)
  * @param uint64_t: 带插入的键
  * @return: 空闲桶的虚拟地址
  */
-pm_bucket *PmEHash::getFreeBucket(uint64_t key)
-{
-	uint64_t bid = hashFunc(key);
+pm_bucket* PmEHash::getFreeBucket(uint64_t key) {
+	uint64_t bid = getCatalogIdx(key);
 	pm_bucket *bucket = catalog.buckets_virtual_address[bid];
-	while (bucket->isFull())
-	{
-		splitBucket(bid);
-		bid = hashFunc(key);
+//	printf("getFreeBucket %lu\n", key);
+	while (bucket->isFull()) {
+		splitBucket(getLowBits(bid, bucket->local_depth));
+		bid = getCatalogIdx(key);
 		bucket = catalog.buckets_virtual_address[bid];
 	}
 	return bucket;
@@ -165,8 +170,25 @@ kv *PmEHash::getFreeKvSlot(pm_bucket *bucket)
  * @param uint64_t: 目标桶在目录中的序号
  * @return: NULL
  */
-void PmEHash::splitBucket(uint64_t bucket_id)
-{
+void PmEHash::splitBucket(uint64_t bucket_id) {
+//	printf("           ");
+//	for (int j = 0; j < 15; ++j) {
+//		printf("%4d", j);
+//	}
+//	putchar('\n');
+//	for (int i = 0; i < metadata->catalog_size; ++i) {
+//		const pm_bucket *bucket = catalog.buckets_virtual_address[i];
+//		const pm_address addr = catalog.buckets_pm_address[i];
+//		printf("%2d (%2d,%2d) ", i, addr.fileId, addr.offset);
+//		for (int j = 0; j < 15; ++j) {
+//			if (bucket->get(j)) {
+//				printf("%4lu", bucket->slot[j].key);
+//			}
+//		}
+//		putchar('\n');
+//	}
+//	puts("\n\n\n\n\n");
+//
 	pm_bucket *bucket = catalog.buckets_virtual_address[bucket_id];
 	if (bucket->local_depth == metadata->global_depth)
 	{
@@ -177,6 +199,8 @@ void PmEHash::splitBucket(uint64_t bucket_id)
 	const uint64_t cucket_id = bucket_id | (1 << (ldepth - 1));
 	catalog.buckets_virtual_address[cucket_id] = (pm_bucket *)getFreeSlot(catalog.buckets_pm_address[cucket_id]);
 	pm_bucket *cucket = catalog.buckets_virtual_address[cucket_id];
+	cucket->local_depth = ldepth;
+	memset(cucket->bitmap, 0, sizeof(cucket->bitmap));
 
 	/* 把原来的桶中部分元素移入新桶 */
 	int num = 0;
@@ -186,8 +210,10 @@ void PmEHash::splitBucket(uint64_t bucket_id)
 		{
 			continue;
 		}
-		if (hashFunc(bucket->slot[i].key) == bucket_id)
-		{
+		if (getLowBits(hashFunc(bucket->slot[i].key), ldepth) == bucket_id) {
+//			if (the_key == 241) {
+//				printf("hash = %lu\n", getCatalogIdx(bucket->slot[i].key));
+//			}
 			continue;
 		}
 		cucket->slot[num] = bucket->slot[i];
@@ -215,12 +241,13 @@ void PmEHash::extendCatalog()
 {
 	++metadata->global_depth;
 	metadata->catalog_size *= 2;
+	printf("the_key = %lu, gDepth = %lu, metadata->catalog_size = %lu\n", the_key, metadata->global_depth, metadata->catalog_size);
 	doubleCatalog(catalog.buckets_pm_address, metadata->catalog_size);
 
 	/* 倍增内存中的虚拟地址 */
-	pm_bucket **new_virtual_address = new pm_bucket *[metadata->catalog_size];
-	memcpy(new_virtual_address, catalog.buckets_virtual_address, sizeof(pm_bucket) * metadata->catalog_size / 2);
-	memcpy(new_virtual_address + metadata->catalog_size / 2, catalog.buckets_virtual_address, sizeof(pm_bucket) * metadata->catalog_size / 2);
+	pm_bucket **new_virtual_address = new pm_bucket*[metadata->catalog_size];
+	memcpy(new_virtual_address, catalog.buckets_virtual_address, sizeof(pm_bucket*) * metadata->catalog_size / 2);
+	memcpy(new_virtual_address + metadata->catalog_size / 2, catalog.buckets_virtual_address, sizeof(pm_bucket*) * metadata->catalog_size / 2);
 	delete[] catalog.buckets_virtual_address;
 	catalog.buckets_virtual_address = new_virtual_address;
 }
@@ -248,9 +275,7 @@ void *PmEHash::getFreeSlot(pm_address &new_address)
  * @param NULL
  * @return: NULL
  */
-void PmEHash::allocNewPage()
-{
-	printf("allocNewPage\n");
+void PmEHash::allocNewPage() {
 	const uint64_t n = metadata->max_file_id;
 	data_page **new_pages = new data_page *[n * 2];
 	memcpy(new_pages, pages, sizeof(data_page *) * n);
@@ -258,16 +283,14 @@ void PmEHash::allocNewPage()
 	pages = new_pages;
 	pages[n] = newPage(n);
 
-	pm_address pm_addr;
-	pm_addr.fileId = n;
+	pm_address pmaddr;
+	pmaddr.fileId = n;
 
-	for (int j = 0; j < DATA_PAGE_SLOT_NUM; ++j)
-	{
-		pm_addr.offset = j;
-		pmAddr2vAddr[pm_addr] = pages[n]->slot + j;
-		printf("%d         hahahahh\n", j);
-		vAddr2pmAddr[pages[n]->slot + j] = pm_addr;
-		printf("%d         aft\n", j);
+	for (int j = 0; j < DATA_PAGE_SLOT_NUM; ++j) {
+		pmaddr.offset = 0;
+		pm_bucket *vaddr = pages[n]->slot + j;
+		pmAddr2vAddr[pmaddr] = vaddr;
+		vAddr2pmAddr[vaddr] = pmaddr;
 		free_list.push(pages[n]->slot + j);
 	}
 
@@ -286,12 +309,8 @@ bool PmEHash::recover()
 	{
 		return false;
 	}
-	//	printf("metadata: %lu %lu %lu\n", metadata->max_file_id, metadata->global_depth, metadata->catalog_size);
-	//	++metadata->global_depth;
-	//	printf("recover: ++success\n");
-	catalog.buckets_pm_address = (pm_address *)mapCatalog();
-	if (catalog.buckets_pm_address == nullptr)
-	{
+	catalog.buckets_pm_address = (pm_address*)mapCatalog();
+	if (catalog.buckets_pm_address == nullptr) {
 		return false;
 	}
 	mapAllPage();
