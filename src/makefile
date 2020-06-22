@@ -4,14 +4,12 @@
 CC := g++
 INCDIR := ../include
 FLAGS := -std=c++11 -w
-src=$(shell find ./ -name "*cpp")
-obj=$(src: %.cpp-%.o)
 
 ycsb:	ycsb.o pm_ehash.o data_page.o
-	${CC} ${FLAGS} -o $@ $^
+	${CC} ${FLAGS} -o $@ $^ -lpmem 
 
 %.o: %.cpp
-	${CC} ${FLAGS} -I ${INCDIR} -o $@ -c $<
+	${CC} ${FLAGS} -I ${INCDIR} -o $@ -c $^
 
 clean: 
 	@rm *.o

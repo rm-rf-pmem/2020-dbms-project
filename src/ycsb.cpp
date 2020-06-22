@@ -56,11 +56,15 @@ void getFileList()
   }
   closedir(dp);
 
+  sort(runFileList.begin(), runFileList.end());
+  sort(loadFileList.begin(), loadFileList.end());
+
   for (int i = 0; i < runFileList.size(); i++)
   {
     cout << "[FIND FILE] " << loadFileList[i] << ' ' << runFileList[i] << endl;
   }
 
+  cout << endl << endl;
   testNum = runFileList.size();
 }
 
@@ -78,6 +82,7 @@ void loadFile(string loadFilePath, PmEHash *db = nullptr)
   {
     cmd = data = "";
     f >> cmd;
+    if (cmd == "") break;
     f >> data;
     string k = data.substr(0, 8);
     int v = atoi(data.substr(8).c_str());
@@ -85,7 +90,7 @@ void loadFile(string loadFilePath, PmEHash *db = nullptr)
     kv_pair.key = stringTo64(k);
     kv_pair.value = v;
     // 测试时注释掉
-    // db->insert(kv_pair);
+    db->insert(kv_pair);
     dataNum++;
     if (dataNum % 10000 == 0)
       cout << "[STATUS] has load " << dataNum << " data" << endl;
@@ -112,6 +117,7 @@ void runFile(string runFilePath, PmEHash *db = nullptr)
   {
     cmd = data = "";
     f >> cmd;
+    if(cmd == "") break;
     f >> data;
     string k = data.substr(0, 8);
     int v = atoi(data.substr(8).c_str());
@@ -153,8 +159,9 @@ int main()
   // cout << stringTo64("85264696") << endl;
   for (int i = 0; i < testNum; i++)
   {
-    // PmEHash db;
-    loadFile(loadFileList[i]);
-    runFile(runFileList[i]);
+    PmEHash *db = new PmEHash;
+    loadFile(loadFileList[i], db);
+    runFile(runFileList[i], db);
+    db->selfDestory();
   }
 }
