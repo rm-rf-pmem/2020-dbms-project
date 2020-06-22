@@ -4,6 +4,7 @@
 #include<cstdint>
 #include<queue>
 #include<map>
+#include <unordered_map>
 // #include"data_page.h"
 
 #define BUCKET_SLOT_NUM               15
@@ -14,6 +15,7 @@
 
 using std::queue;
 using std::map;
+using std::unordered_map;
 
 /* 
 ---the physical address of data in NVM---
@@ -100,7 +102,9 @@ private:
     map<pm_address, pm_bucket*> pmAddr2vAddr;       // map pm_address to virtual address, used to find specific virtual address
 	data_page **pages;
     
-    uint64_t hashFunc(uint64_t key);
+	uint64_t hashFunc(uint64_t key);
+	uint64_t getLowBits(uint64_t target, size_t numBits);
+    uint64_t getCatalogIdx(uint64_t key);
 
     pm_bucket* getFreeBucket(uint64_t key);
     pm_bucket* getNewBucket();
