@@ -6,7 +6,8 @@
 
 // uncompressed page format design to store the buckets of PmEHash
 // one slot stores one bucket of PmEHash
-typedef struct data_page {
+typedef struct data_page
+{
     // fixed-size record design
     // uncompressed page format
 } data_page;
