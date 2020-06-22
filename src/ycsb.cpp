@@ -125,7 +125,8 @@ void getFileList()
 
   for (int i = 0; i < loadFileList.size(); i++)
   {
-    cout << "[FIND FILE] " << loadFileList[i] << endl;
+    files.push_back(*new Infor(loadFileList[i]));
+    cout << "[FIND FILE] " << files[i].getLoadName() << ' ' << files[i].getRunName() << endl;
   }
 
   cout << endl
