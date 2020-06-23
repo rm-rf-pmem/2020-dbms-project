@@ -64,8 +64,11 @@ void getFileList()
   for (int i = 0; i < loadFileList.size(); i++)
   {
     files.push_back(*new txtInfo(loadFileList[i]));
-    cout << "[FIND FILE] " << files[i].getLoadName() << ' ' 
-         << files[i].getRunName() << endl;
+    printf("[FIND FILE] %s %s\n", 
+            files[i].getLoadName().c_str(), 
+            files[i].getRunName().c_str());
+    // cout << "[FIND FILE] " << files[i].getLoadName() << ' ' 
+    //      << files[i].getRunName() << endl;
   }
 
   cout << endl << endl;
@@ -79,8 +82,12 @@ void loadFile(txtInfo file, PmEHash *db = nullptr)
   f.open(WORKLOAD + file.getLoadName(), ios::in);
 
   // 开始标识栏
-  cout << "[STATUS] start to init DB with " << file.getLoadName() << endl;
-  cout << "---------------------------------------------------" << endl;
+  // cout << "[STATUS] start to init DB with " << file.getLoadName() << endl;
+  // cout << "---------------------------------------------------" << endl;
+
+  printf("[STATUS] start to init DB with %s\n", file.getLoadName().c_str());
+  printf("---------------------------------------------------\n");
+
   string cmd = "";
   string data = "";
   time_t start = clock(); // 计时开始
@@ -107,16 +114,20 @@ void loadFile(txtInfo file, PmEHash *db = nullptr)
     db->insert(kv_pair); //插入操作
 
     dataNum++;
-    // if (dataNum % 100000 == 0) // 每1W次操作就进行一次输出
-    //   cout << "[STATUS] has load " << dataNum << "/" << file.getDataSize() << " data" << endl;
+    if (dataNum % 100000 == 0) // 每10W次操作就进行一次输出
+      printf("[STATUS] has load %ld/%ld data\n", dataNum, file.getDataSize());
+      // cout << "[STATUS] has load " << dataNum << "/" << file.getDataSize() << " data" << endl;
   }
 
   time_t end = clock(); // 计时结束
 
   // 结束标识栏
-  cout << "[STATUS] Init DB finished, use time ";
-  printf("%.5lf", ((double)end - start) / CLOCKS_PER_SEC); // 输出操作时间
-  cout << "s" << endl << endl << endl;
+  // cout << "[STATUS] Init DB finished, use time ";
+  // printf("%.5lf ", ((double)end - start) / CLOCKS_PER_SEC); // 输出操作时间
+  // cout << "s" << endl << endl << endl;
+
+  printf("[STATUS] Init DB finished, use time "
+         "%.5lf s\n\n\n", ((double)end - start) / CLOCKS_PER_SEC); // 输出操作时间
   f.close();
 }
 
@@ -126,8 +137,12 @@ void runFile(txtInfo file, PmEHash *db = nullptr)
   f.open(WORKLOAD + file.getRunName(), ios::in);
 
   // 开始标志栏
-  cout << "[STATUS] start to run DB with " << file.getRunName() << endl;
-  cout << "---------------------------------------------------" << endl;
+  // cout << "[STATUS] start to run DB with " << file.getRunName() << endl;
+  // cout << "---------------------------------------------------" << endl;
+
+  printf("[STATUS] start to run DB with %s\n", file.getRunName().c_str());
+  printf("---------------------------------------------------\n");
+
   string cmd = "";
   string data = "";
   time_t start = clock(); // 计时开始
@@ -173,39 +188,39 @@ void runFile(txtInfo file, PmEHash *db = nullptr)
     }
     else
     {
-      cout << "[ERROR] INVALID COMMAND: " << cmd << endl;
+      printf("[ERROR] INVALID COMMAND: %s\n", cmd);
+      // cout << "[ERROR] INVALID COMMAND: " << cmd << endl;
     }
 
     // 好像没见到删除
 
     cmdNum++;
-    // if (cmdNum % 1000000 == 0) // 每1W次操作删除一次
-    //   cout << "[STATUS] has run " << cmdNum << " command" << endl;
+    if (cmdNum % 100000 == 0) // 每10W次操作删除一次
+      printf("[STATUS] has run %ld command\n", cmdNum);
+      // cout << "[STATUS] has run " << cmdNum << " command" << endl;
   }
   time_t end = clock(); // finish run
 
   // 结束标识栏
   double spentTime = ((double)end - start) / CLOCKS_PER_SEC;
-  cout << "[STATUS] Run DB finished "<< endl;
-  cout << "---------------------------------------------------" << endl;
+  // cout << "[STATUS] Run DB finished "<< endl;
+  // cout << "---------------------------------------------------" << endl;
 
-  cout << "use time ";
-  printf("%.4lfs\n", spentTime);                                    // 操作时间
-  cout << "r/w = " << read << '/' << write << endl                  // 读写比
-       << "speed: " << (long)(cmdNum / spentTime) << " commands/s"  // 操作数/秒
-       << endl << endl << endl;
+  printf("[STATUS] Run DB finished \n");
+  printf("---------------------------------------------------\n");
+
+  printf("commends size: %ld\n", cmdNum);                               // 总操作数
+  printf("use time %.4lfs\n", spentTime);                               // 操作时间
+  printf("r/w = %d/%d\n", read, write);                                 // 读写比
+  printf("speed: %ld commands/s\n\n\n", (long)(cmdNum / spentTime));    // 每秒操作数
   f.close();
 }
 
 int main()
 {
-  // 调试用的
-  getFileList();
-  // PmEHash *db = new PmEHash();
-  // loadFile(files[5], db);
-  // runFile(files[5], db);
-  // db->selfDestory();
+  getFileList(); // 获取文件列表
 
+  // 对个 load-run 文件进行测试
   for (int i = 0; i < testNum; i++)
   {
     PmEHash *db = new PmEHash();
