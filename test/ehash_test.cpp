@@ -2,6 +2,9 @@
 #include "pm_ehash.h"
 #include <iostream>
 #include <string>
+#include <cstdlib>
+#include <ctime>
+#include <unordered_set>
 
 using namespace std;
 
