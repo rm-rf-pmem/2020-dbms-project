@@ -20,7 +20,7 @@ public:
   string getLoadName();
 
   /**
-  *  获取 run.txt 的文件名
+   * 获取 run.txt 格式的文件名
   */
   string getRunName();
 

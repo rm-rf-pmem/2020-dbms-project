@@ -8,7 +8,6 @@
 #include <string.h>
 #include <cstdio>
 #include <time.h>
-#include <cstdlib>
 
 using namespace std;
 
@@ -18,10 +17,10 @@ using namespace std;
 vector<string> loadFileList;                              // 储存对应文件
 int testNum;                                              // 储存 load-run 文件对数量
 const regex loadReg("(\\d+)w-rw-(\\d+)-(\\d+)-load.txt"); // load.txt 的正则匹配
-vector<txtInfo> files;                                      // 储存文件相关信息
+vector<txtInfo> files;                                    // 储存文件相关信息
 
-/**
-  * @将前8位字符转换位 uint64_t
+/*
+ * @将前8位字符转换位 uint64_t
 */
 uint64_t stringTo64(string str)
 {
@@ -42,6 +41,7 @@ uint64_t stringTo64(string str)
 void getFileList()
 {
   loadFileList.clear();
+  files.clear();
 
   string dirname;
   DIR *dp;
@@ -64,9 +64,9 @@ void getFileList()
   for (int i = 0; i < loadFileList.size(); i++)
   {
     files.push_back(*new txtInfo(loadFileList[i]));
-    printf("[FIND FILE] %s %s\n", 
-            files[i].getLoadName().c_str(), 
-            files[i].getRunName().c_str());
+    printf("[FIND FILE] %s %s\n",
+           files[i].getLoadName().c_str(),
+           files[i].getRunName().c_str());
   }
 
   printf("\n\n\n");
@@ -90,7 +90,7 @@ void loadFile(txtInfo file, PmEHash *db = nullptr)
   string cmd = "";
   string data = "";
   time_t start = clock(); // 计时开始
-  long long dataNum = 0; // 计算数据数量
+  long long dataNum = 0;  // 计算数据数量
 
   while (!f.eof())
   {
@@ -119,7 +119,8 @@ void loadFile(txtInfo file, PmEHash *db = nullptr)
 
   // 结束标识栏
   printf("[STATUS] Init DB finished, use time "
-         "%.5lf s\n\n\n", ((double)end - start) / CLOCKS_PER_SEC); // 输出操作时间
+         "%.5lf s\n\n\n",
+         ((double)end - start) / CLOCKS_PER_SEC); // 输出操作时间
   f.close();
 }
 
@@ -197,10 +198,10 @@ void runFile(txtInfo file, PmEHash *db = nullptr)
   printf("[STATUS] Run DB finished \n");
   printf("---------------------------------------------------\n");
 
-  printf("operation size: %ld\n", cmdNum);                               // 总操作数
-  printf("use time %.4lfs\n", spentTime);                               // 操作时间
-  printf("r/w = %d/%d\n", read, write);                                 // 读写比
-  printf("OPS: %ld operations/s\n\n\n", (long)(cmdNum / spentTime));    // 每秒操作数
+  printf("operation size: %ld\n", cmdNum);                           // 总操作数
+  printf("use time %.4lfs\n", spentTime);                            // 操作时间
+  printf("r/w = %d/%d\n", read, write);                              // 读写比
+  printf("OPS: %ld operations/s\n\n\n", (long)(cmdNum / spentTime)); // 每秒操作数
   f.close();
 }
 

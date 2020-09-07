@@ -7,6 +7,7 @@ FLAGS := -std=c++11 -w
 
 ycsb:	ycsb.o pm_ehash.o data_page.o cmd.o
 	${CC} ${FLAGS} -o $@ $^ -lpmem 
+	sudo ./ycsb
 
 %.o: %.cpp
 	${CC} ${FLAGS} -I ${INCDIR} -o $@ -c $^

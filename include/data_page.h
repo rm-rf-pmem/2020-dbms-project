@@ -7,17 +7,18 @@
 
 // uncompressed page format design to store the buckets of PmEHash
 // one slot stores one bucket of PmEHash
-typedef struct data_page {
+typedef struct data_page
+{
     // fixed-size record design
     // uncompressed page format
-	pm_bucket slot[DATA_PAGE_SLOT_NUM];
-	uint16_t bitmap;
+    pm_bucket slot[DATA_PAGE_SLOT_NUM];
+    uint16_t bitmap;
 } data_page;
 
 void makeDataDirectory();
 void newEHashFiles();
-void* mapFile(const char *path);
-void* mapMetadata();
-void* mapCatalog();
+void *mapFile(const char *path);
+void *mapMetadata();
+void *mapCatalog();
 
 #endif
